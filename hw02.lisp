@@ -367,8 +367,7 @@ EX: (check= (- 4/3 1) 1/3)
    (t (cons (list (first l)) (wrap-elements (rest l))))))
   
 (check= (wrap-elements '(1 2 3)) '((1) (2) (3)))
-(check= (wrap-elements '(1 2 (3))) '((1) (2) ((3))))#|ACL2s-ToDo-Line|#
-
+(check= (wrap-elements '(1 2 (3))) '((1) (2) ((3))))
 
 ; Additional tests
 (check= (wrap-elements '(a b (c d) e)) '((a) (b) ((c d)) (e)))
@@ -393,9 +392,17 @@ EX: (check= (- 4/3 1) 1/3)
 (defunc rem-similar (x y)
   :input-contract (and (natp x)(posp y))
   :output-contract (natp (rem-similar x y))
-  .....
+  (if (< x y) 
+    x
+    (rem-similar (- x y) y)))
+   
+    
+  
   
 (check= (rem-similar 8000000004 2000000000) 4)
+(check= (rem-similar 24 8) 0)
+(check= (rem-similar 0 5) 0)
+(check= (rem-similar 30 9) 3)
 ;; The check below would be extremely slow using this method of calculating 
 ;; the remainder
 ;; (check= (rem-similar 800000 2))
@@ -410,12 +417,16 @@ EX: (check= (- 4/3 1) 1/3)
 (defunc rem-smally (x y)
   :input-contract (and (natp x)(posp y))
   :output-contract (natp (rem-smally x y))
-  .......
+  (if (integerp (/ x y))
+    0
+    (+ 1 (rem-smally (- x 1) y))))
   
 ;; The check below would be extremely slow using this method of calculating 
 ;; the remainder
 ;;(check= (rem-smally 8000000004 2000000000) 4)
 (check= (rem-smally 800001 2) 1)
+(check= (rem-smally 400000000 4) 0)
+(check= (rem-smally 0 5) 0)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; GIVEN
@@ -446,7 +457,9 @@ EX: (check= (- 4/3 1) 1/3)
 (check= (rem 123 48) 27)
 
 ; Additional Checks
-...........
+(check= (rem 0 5) 0)
+(check= (rem 8000005 8) 5)
+(check= (rem 3 50) 3)
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -462,12 +475,17 @@ EX: (check= (- 4/3 1) 1/3)
 (defunc nat/ (x y)
   :input-contract (and (natp x)(posp y))
   :output-contract (natp (nat/ x y))
-  ......
-
+  (if (>= x y)
+    (+ 1 (nat/ (- x y) y))
+    0))
+    
 (check= (nat/ 16 3) 5)
 (check= (nat/ 16 2) 8)
 
 ;; Additional tests
+(check= (nat/ 0 5) 0)
+(check= (nat/ 7 10) 0)
+(check= (nat/ 5 4) 1)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; GIVEN
@@ -492,7 +510,13 @@ EX: (check= (- 4/3 1) 1/3)
 ;; positive and rounded UP if the result is negative.
 ;; HINT: Do not re-invent the wheel here. Use previous functions.
 (defunc int/ (x y)
-  .......
+  :input-contract (and (integerp x) (integerp y) (not (equal y 0)))
+  :output-contract (integerp (int/ x y))
+  (cond 
+   ((>= x 0) (if (>= y 0) 
+               (nat/ x y) 
+               (* -1 (int/ x (abs y)))))
+   (t (* -1 (int/ (abs x) y)))))
   
   
 ;; Add additional tests after these
@@ -502,7 +526,9 @@ EX: (check= (- 4/3 1) 1/3)
 (check= (int/ 5 4) 1)
 
 ; Additional Checks
-
+(check= (int/ 0 5) 0)
+(check= (int/ 10 5) 2)
+(check= (int/ 6 3) 2)
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; GIVEN
 ;; floor: Rational -> Integer
@@ -539,9 +565,16 @@ EX: (check= (- 4/3 1) 1/3)
 ;; and rounded down for values of Y <= 1/2
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defunc round (r)
-  ........
+  :input-contract (rationalp r)
+  :output-contract (integerp (round r))
+  (+ (floor r) 
+     (if (> (- r (floor r)) 1/2)
+       1
+       0)))
   
 (check= (round 4/3) 1)
 (check= (round -4/3) -1)
 (check= (round 5/3) 2)
 (check= (round -5/3) -2)
+(check= (round 1/2) 0)
+(check= (round -1/2) -1)#|ACL2s-ToDo-Line|#
